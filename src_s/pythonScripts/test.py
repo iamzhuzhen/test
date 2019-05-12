@@ -1,6 +1,7 @@
 import xlrd
 import datetime
 import pandas as pd
+import numpy as np
 import io
 import uuid
 # uuid.uuid1()　　基于MAC地址，时间戳，随机数来生成唯一的uuid，可以保证全球范围内的唯一性。
@@ -38,8 +39,17 @@ def read_excel():
     print(sheet1.cell(1, 0).ctype)
 
 def pd_read_excel():
-    raw_data = pd.read_excel('D:/development/workspace/test/src_s/file/small_dataset.xlsx')
-    return raw_data
+    raw_data = pd.read_excel('D:/development/workspace/test/src_s/file/1M_dataset.xlsx')
+    return generate_df_uuid(raw_data)
+
+def generate_df_uuid(df):
+    start_time = datetime.datetime.strftime(datetime.datetime.now(),'%Y-%m-%d %H:%M:%S')
+    print ('start uuid time: ' + start_time)
+    # df.loc[:,'d_guid'] = pd.Series(uuid.uuid4(),index=df.index)
+    df['uuid'] = [uuid.uuid4() for x in range(len(df.index))]
+    end_time = datetime.datetime.strftime(datetime.datetime.now(),'%Y-%m-%d %H:%M:%S')
+    print ('end uuid time: ' + end_time)
+    return df
 
 def write_to_table(df, table_name, if_exists='fail'):
     db_engine = create_engine('postgres://postgres:Welcome@pwc01@localhost:5432/test')# 初始化引擎
@@ -65,6 +75,6 @@ if __name__ == '__main__':
     print ('start time: ' + start_time)
     #read_excel()
     data = pd_read_excel()
-    write_to_table(data,'test','append')
+    write_to_table(data,'test','replace')
     end_time = datetime.datetime.strftime(datetime.datetime.now(),'%Y-%m-%d %H:%M:%S')
     print ('end time: ' + end_time)
