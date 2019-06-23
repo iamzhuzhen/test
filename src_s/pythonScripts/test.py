@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import io
 import uuid
+import time
 # uuid.uuid1()　　基于MAC地址，时间戳，随机数来生成唯一的uuid，可以保证全球范围内的唯一性。
 # uuid.uuid2()　　算法与uuid1相同，不同的是把时间戳的前4位置换为POSIX的UID。不过需要注意的是python中没有基于DCE的算法，所以python的uuid模块中没有uuid2这个方法。
 # uuid.uuid3(namespace,name)　　通过计算一个命名空间和名字的md5散列值来给出一个uuid，所以可以保证命名空间中的不同名字具有不同的uuid，但是相同的名字就是相同的uuid了。namespace并不是一个自己手动指定的字符串或其他量，而是在uuid模块中本身给出的一些值。比如uuid.NAMESPACE_DNS，uuid.NAMESPACE_OID，uuid.NAMESPACE_OID这些值。这些值本身也是UUID对象，根据一定的规则计算得出。
@@ -39,19 +40,32 @@ def read_excel():
     print(sheet1.cell(1, 0).ctype)
 
 def pd_read_excel():
+    start_time = time.time()
     raw_data = pd.read_excel('D:/development/workspace/test/src_s/file/1M_dataset.xlsx')
-    return generate_df_uuid(raw_data)
+    end_time = time.time()
+    print ('read excel run time ={} second'.format(end_time-start_time))
+    result = generate_df_uuid(raw_data)
+    return result
 
 def generate_df_uuid(df):
-    start_time = datetime.datetime.strftime(datetime.datetime.now(),'%Y-%m-%d %H:%M:%S')
-    print ('start uuid time: ' + start_time)
-    # df.loc[:,'d_guid'] = pd.Series(uuid.uuid4(),index=df.index)
+    #start_time = datetime.datetime.strftime(datetime.datetime.now(),'%Y-%m-%d %H:%M:%S')
+    #print ('start uuid time: ' + start_time)
+    start_time = time.time()
     df['uuid'] = [uuid.uuid4() for x in range(len(df.index))]
-    end_time = datetime.datetime.strftime(datetime.datetime.now(),'%Y-%m-%d %H:%M:%S')
-    print ('end uuid time: ' + end_time)
+    end_time = time.time()
+
+    #end_time = datetime.datetime.strftime(datetime.datetime.now(),'%Y-%m-%d %H:%M:%S')
+    print ('for - loop uuid run time ={} second'.format(end_time-start_time))
+
+    start_time = time.time()
+    for index, data_row in df.iterrows():
+        data_row['uuid'] = uuid.uuid4()
+    end_time = time.time()
+    print ('iterrows uuid run time ={} second'.format(end_time-start_time))
     return df
 
 def write_to_table(df, table_name, if_exists='fail'):
+    start_time = time.time()
     db_engine = create_engine('postgres://postgres:Welcome@pwc01@localhost:5432/test')# 初始化引擎
     string_data_io = io.StringIO()
     df.to_csv(string_data_io, sep='|', index=False)
@@ -69,12 +83,11 @@ def write_to_table(df, table_name, if_exists='fail'):
             copy_cmd = "COPY public.%s FROM STDIN HEADER DELIMITER '|' CSV" %table_name
             cursor.copy_expert(copy_cmd, string_data_io)
             connection.connection.commit()
+    
+    end_time = time.time()
+    print ('bulk create run time ={} second'.format(end_time-start_time))
+    
 
 if __name__ == '__main__':
-    start_time = datetime.datetime.strftime(datetime.datetime.now(),'%Y-%m-%d %H:%M:%S')
-    print ('start time: ' + start_time)
-    #read_excel()
     data = pd_read_excel()
-    write_to_table(data,'test','replace')
-    end_time = datetime.datetime.strftime(datetime.datetime.now(),'%Y-%m-%d %H:%M:%S')
-    print ('end time: ' + end_time)
+    #write_to_table(data,'test','replace')
